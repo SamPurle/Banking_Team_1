@@ -124,7 +124,7 @@ select
 			when account = '' then null
 			else substring(account,2, len(account)-2)
 		end as DestinationAccount
---into Clean.[Trans]
+into Clean.[Trans]
 from dbo.trans
 
 --Loan
