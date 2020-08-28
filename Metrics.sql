@@ -1,35 +1,67 @@
+use bankingT1
+go
+
 /*
-Create "Disposable Income" metric as combination of income and expenses
+Salary Metric
 */
 
-select top 500
-	account.account_id,
-	Salary,
-	Expenditure,
-	Salary - Expenditure as DisposableIncome
-from dbo.account
-inner join 
-	(
-	select 
-		a.account_id,
-		convert(money, (sum(convert( float, amount))) / ((max(convert(float, t.date)) - min(convert(float, t.date))) / 12000)) as Salary
-	from dbo.account as a
-	inner join dbo.trans as t
-		on a.account_id = t.account_id
-		where t.type = '"PRIJEM"'
-	group by a.account_id
-	) as Sal
-on account.account_id = Sal.account_id
+select  
+	a.AccountId,
+	CleanDate,
+	SumDep,
+	MaxDate,
+	convert(money,SumDep / (datediff(year, CleanDate, MaxDate))) as Salary
+from Clean.Account as a
 inner join
-	(
-	select 
-		a.account_id,
-		convert(money, (sum(convert( float, amount))) / ((max(convert(float, t.date)) - min(convert(float, t.date))) / 12000)) as Expenditure
-	from dbo.account as a
-	inner join dbo.trans as t
-		on a.account_id = t.account_id
-		where t.type = '"VYDAJ"'
-	group by a.account_id
-	) as Expen
-on account.account_id = Expen.account_id
-order by account.account_id asc
+(
+select distinct top 500
+	AccountId,
+	sum(amount) over (partition by AccountId) as SumDep,
+	max(CleanDate) over (partition by AccountId) as MaxDate
+from Clean.Trans
+	where amount > 0
+) as t
+on a.AccountId = t.AccountId
+
+/*
+Expenses Metric
+*/
+
+select  
+	a.AccountId,
+	CleanDate,
+	SumWith,
+	MaxDate,
+	convert(money, SumWith / (datediff(year, CleanDate, MaxDate))) as Expenses
+from Clean.Account as a
+inner join
+(
+select distinct top 500
+	AccountId,
+	sum(amount) over (partition by AccountId) as SumWith,
+	max(CleanDate) over (partition by AccountId) as MaxDate
+from Clean.Trans
+	where amount < 0
+) as t
+on a.AccountId = t.AccountId
+
+/*
+Cashflow Metric
+*/
+
+select  
+	a.AccountId,
+	CleanDate,
+	SumTrans,
+	MaxDate,
+	convert(money, SumTrans / (datediff(year, CleanDate, MaxDate))) as CashFlow
+from Clean.Account as a
+inner join
+(
+select distinct top 500
+	AccountId,
+	sum(amount) over (partition by AccountId) as SumTrans,
+	max(CleanDate) over (partition by AccountId) as MaxDate
+from Clean.Trans	
+) as t
+on a.AccountId = t.AccountId
