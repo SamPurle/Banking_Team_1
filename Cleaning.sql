@@ -119,11 +119,11 @@ select
 	case 
 		when bank = '' then null
 		else substring(bank,2, len(bank)-2)
-	end as DestinationBank,
+	end as OtherBank,
 		case 
 			when account = '' then null
 			else substring(account,2, len(account)-2)
-		end as DestinationAccount
+		end as OtherAccount
 into Clean.[Trans]
 from dbo.trans
 
