@@ -92,7 +92,7 @@ go
 select
 	trans_id as TransactionId,
 	account_id as AccountId,
-	convert(date, concat('19', date), 112) as CleanDate,
+	[date] as CleanDate,
 	case 
 		when operation = '"VYBER KARTOU"' then 'Credit Card Withdrawal'
 		when operation = '"VKLAD"' then 'Credit in Cash'
@@ -119,12 +119,12 @@ select
 	case 
 		when bank = '' then null
 		else substring(bank,2, len(bank)-2)
-	end as DestinationBank,
+	end as OtherBank,
 		case 
 			when account = '' then null
 			else substring(account,2, len(account)-2)
-		end as DestinationAccount
---into Clean.[Trans]
+		end as OtherAccount
+into Clean.[Trans]
 from dbo.trans
 
 --Loan
@@ -135,7 +135,7 @@ go
 select
 	loan_id as LoanId,
 	account_id as AccountId,
-	convert(date, concat('19', date), 112) as CleanDate,
+	[date] as CleanDate,
 	amount as Amount,
 	duration as Duration,
 	payments as Payments,	
@@ -158,7 +158,7 @@ select
 	card_id as CardId,
 	disp_id as DispId,
 	substring(type,2,len(type)-2) as Type,
-	convert(date, left(concat('19', issued), 8), 112) as IssueDate
+	cast(issued as date) as IssueDate
 into Clean.Card
 from dbo.card
 
@@ -228,4 +228,3 @@ WHEN not MATCHED by target
 		A15,
 		A16
 	);
-
