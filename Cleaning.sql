@@ -10,7 +10,7 @@ go
 select
 	account_id as AccountId,
 	district_id as DistrictId,
-	convert(datetime, [date]) as CleanDate,
+	convert(date, [date]) as CleanDate,
 	case 
 		when frequency = '"POPLATEK MESICNE"' then 'Monthly Issuance'
 		when frequency = '"POPLATEK TYDNE"' then 'Weekly Issuance'
@@ -28,7 +28,7 @@ go
 
 select
 	client_id as ClientId,
-	convert(date, cast(BirthNumber as char)) as BirthDate,
+	convert(date, concat( '19', cast(BirthNumber as char))) as BirthDate,
 	district_id as DistrictId,
 	case
 		when substring(birth_number,4,4) > 5000 then 'Female'
@@ -45,6 +45,7 @@ from
 		end as BirthNumber
 	from dbo.Client 
 	) as BirthConvert
+	
 
 
 --Disposition
@@ -85,18 +86,13 @@ from dbo.[Order]
 
 --Transaction
 
-drop table if exists Clean.Deal
+drop table if exists Clean.[Trans]
 go
 
 select
 	trans_id as TransactionId,
 	account_id as AccountId,
 	convert(date, concat('19', date), 112) as CleanDate,
-	case
-		when type = '"PRIJEM"' then 'Credit'
-		when type = '"VYDAJ"' then 'Withdrawal'
-		else NULL
-	end as TransactionType,
 	case 
 		when operation = '"VYBER KARTOU"' then 'Credit Card Withdrawal'
 		when operation = '"VKLAD"' then 'Credit in Cash'
@@ -105,8 +101,11 @@ select
 		when operation = '"PREVOD NA UCET"' then 'Remittance to another Bank'
 		else NULL
 	end as CleanOperation,
-	amount as Amount,
-	balance as Balance,
+	case
+		when type = '"PRIJEM"' then amount
+		else -cast(amount as decimal(10,2))
+	end as Amount,
+	balance as BalanceAfterTrans,
 	case
 		when k_symbol = '"POJISTNE"' then 'Insurance payment'
 		when k_symbol = '"SLUZBY"' then 'payment for statement'
@@ -125,7 +124,7 @@ select
 			when account = '' then null
 			else substring(account,2, len(account)-2)
 		end as DestinationAccount
-into Clean.Deal
+--into Clean.[Trans]
 from dbo.trans
 
 --Loan
@@ -190,7 +189,7 @@ CREATE TABLE Clean.[District](
 ) ON [PRIMARY]
 GO
 
-MERGE Clean.District as t USING dbo.District  as s
+MERGE Clean.District as t USING dbo.District2 as s
 ON t.DistrictId = s.A1
 WHEN not MATCHED by target
     THEN insert 
@@ -213,8 +212,8 @@ WHEN not MATCHED by target
 	)
 	values
 	(
-		A2,
-		A3,
+		replace(A2,'"',''),
+		replace(A3,'"',''),
 		A4,
 		A5,
 		A6,
@@ -229,3 +228,4 @@ WHEN not MATCHED by target
 		A15,
 		A16
 	);
+
