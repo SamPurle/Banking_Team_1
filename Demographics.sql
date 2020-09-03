@@ -8,7 +8,7 @@ Target competitor banks
 ;with CTE_STEAL_UR_CUSTOMERS
 as
 (
-select 
+select top 15000
 	OtherBank,
 	abs(convert(money,amount)) as Amount,
 	case
@@ -21,7 +21,7 @@ from clean.Trans
 select
 	*
 from CTE_STEAL_UR_CUSTOMERS
-pivot(sum(amount) for TransType in (TransIn, TransOut)) as PIVET_Average;
+pivot(avg(amount) for TransType in (TransIn, TransOut)) as PIVET_Average;
 
 
 /*
@@ -31,7 +31,7 @@ Age segmentation
 ;with CTE_Age 
 as 
 (
-select
+select distinct
 	a.AccountId,
 	datediff(year, BirthDate, '1998-12-31') as Age,
 	case 

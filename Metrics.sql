@@ -133,8 +133,17 @@ where t.Amount > 0
 )
 go
 
-select
-	*
-from ViewSchema.NaughtyList
-	where SalaryMultiple > 2
-	and CrimeRank <= 10
+create or alter procedure Procs.ShowMeTheNaughties
+(@IncomeMult int, @CrimeRank int)
+as
+begin
+
+	select
+		*
+	from ViewSchema.NaughtyList
+		where SalaryMultiple > @IncomeMult
+		and CrimeRank <= @CrimeRank
+
+end
+
+exec Procs.ShowMeTheNaughties @IncomeMult = 2, @CrimeRank = 10
