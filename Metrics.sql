@@ -94,3 +94,56 @@ select
 	*,
 	rank() over (order by CrimeRate desc) as CrimeRank
 from CTE_CrimeRate
+
+/*
+Fraud/ML Detection
+*/
+
+go
+create or alter view ViewSchema.NaughtyList
+as
+(
+select distinct 
+	t.AccountId,
+	-- sum(Amount) over (partition by t.AccountId) as SumDep,
+	-- max(t.CleanDate) over (partition by t.AccountId) as MaxDate,
+	-- min(t.CleanDate) over (partition by t.AccountId) as MinDate,
+	-- datediff(day, min(t.CleanDate) over (partition by t.AccountId), max(t.CleanDate) over (partition by t.AccountId)) / 365 as TimeSpanYears,
+	-- (sum(Amount) over (partition by t.AccountId)) / (datediff(day, min(t.CleanDate) over (partition by t.AccountId), max(t.CleanDate) over (partition by t.AccountId))) * 365 as SalaryProxy,
+	((sum(Amount) over (partition by t.AccountId)) / (datediff(day, min(t.CleanDate) over (partition by t.AccountId), max(t.CleanDate) over (partition by t.AccountId))) * 365) / (d.MeanSalary * 12) as SalaryMultiple,
+	CrimeRank
+from Clean.Trans as t
+inner join Clean.Account as a
+	on t.AccountId = a.AccountId
+inner join 
+(
+	select
+		*,
+		rank() over (order by CrimeRate desc) as CrimeRank
+	from (
+	select
+		DistrictId,
+		convert(float, Crimes96) / convert(float, Inhabitants) * 100 as CrimeRate,
+		MeanSalary
+	from Clean.District
+	) as CrimeRate
+) as d
+	on a.DistrictId = d.DistrictId
+where t.Amount > 0
+)
+go
+
+create or alter procedure Procs.ShowMeTheNaughties
+(@IncomeMult int, @CrimeRank int)
+as
+begin
+
+	select
+		*
+	from ViewSchema.NaughtyList
+		where SalaryMultiple > @IncomeMult
+		and CrimeRank <= @CrimeRank
+
+end
+
+exec Procs.ShowMeTheNaughties @IncomeMult = 2, @CrimeRank = 10
